@@ -20,7 +20,7 @@ fn main() {
         tspan.push(tspan[i-1]+dt);
     }
     
-    let tspan = vec![1.0, 1.1, 1.2];
+    // let tspan = vec![1.0, 1.1, 1.2];
 
     let result = test_int(&input, tinput);
     println!("{:?}", result);
@@ -49,4 +49,15 @@ fn test_int(x: &Vec<f64>, t: f64) -> Vec<f64> {
     
     vec![dy_dx, dy2_dx2]
 }   
+
+// TODO: Remove this when you have completed the homework
+#[allow(unused_variables, dead_code)]
+fn test_again(x: &Vec<f64>, t:f64) -> Vec<f64> {
+    // Assess current values
+    let yn = x.get(0).unwrap();
+
+    let dy_dx = 5.0 - 3.0 / 2.0 * yn.powf(2.0);
+
+    vec![dy_dx]
+}
 

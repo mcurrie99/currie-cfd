@@ -30,7 +30,7 @@ where
         
         // First Stage of Analysis
         let dt = tspan.get(i+1).unwrap() - tspan.get(i).unwrap();
-        let (guess, derivs) = rk2_guess(f, &inputs, *time, dt);
+        let (guess, derivs) = rk2_guess(&f, &inputs, *time, dt);
 
         // Second Stage of analysis
         let vals = rk2_act(&f, &guess, *time, dt, &derivs, &inputs);
@@ -90,12 +90,59 @@ where
 }
 
 
-
+// TODO: Finish this, I have grown tired of my state
+// I will defeat this one day
 // 2ND ORDER ADAMS-MOULTON
 #[allow(unused_variables)]
-pub fn am2<F>(f:&F, x0:&Vec<f64>, tspan:&Vec<f64>) -> Vec<Vec<f64>> {
-    
+pub fn am2<F>(f:&F, x0:&Vec<f64>, tspan:&Vec<f64>) -> Vec<Vec<f64>> 
+where F:Fn(&Vec<f64>, f64) -> f64{
+    // f: Function to call for numerical integration
+    // x0: Initial Conditions
+    // tspan: Integration Axis
+    let mut results= vec![vec![0.0; tspan.len()]; x0.len() + 1];
+
+    // Initial Calculations using x0
+    // Adds time to calculations
+    // Iterates through initial variables before beginning integration
+    results[0][0] = *tspan.get(0).unwrap();
+    for (i, val) in x0.iter().enumerate() {
+        results[i+1][0] = *val;
+    }
+
+    // Allocates input variables
+    let mut inputs = vec![0.0; x0.len()];
+
+
+    // Analysis over time span
+    for (i, time) in tspan.iter().enumerate().take(tspan.len() - 1) {
+        
+        // Constructs inputs
+        for j in 1..results.len() {
+            inputs[j-1] = results[j][i]
+        }
+        
+        // Creates Closure of root function
+
+
+        // Second Stage of analysis
+        // let vals = rk2_act(&f, &guess, *time, dt, &derivs, &inputs);
+
+        // Enters values into the results array
+        // results[0][i+1] = tspan[i+1];
+        // for (j, val) in vals.iter().enumerate() {
+        //     results[j+1][i+1] = *val;
+        // }
+    }
+
+    // results;
+
     vec![vec![]]
+}
+
+// TODO: I think this can be removed
+#[allow(unused_variables, dead_code)]
+fn am2_roots(yn0:f64, yn1:f64) -> f64 {
+    5.0
 }
 
 #[cfg(test)]
