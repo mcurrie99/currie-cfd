@@ -1,7 +1,8 @@
 // Crate that is being worked on
 use currie_cfd as cfd;
-// use rug::Float;
-fn main() {
+
+#[allow(dead_code)]
+fn main2() {
     let y0 = 2.0;
     let z0 = 2.0;
     let x0 = 1.0;
@@ -37,6 +38,39 @@ fn main() {
     let _check = cfd::tools::array_to_csv(&int_results, &cols, output_path);
 }
 
+fn main() {
+    // Setting up conditions
+    let y0 = 10.0;
+    
+    // Sets up Arrays for funciton call
+    let xspan = vec![1.0, 1.1, 1.2];
+    let input = vec![y0];
+
+    // Defining number of steps for solver
+    let solver_steps = 100;
+
+    // Creates tspan Vector
+    // let dt = 0.0001;
+    // let mut xspan: Vec<f64> = Vec::with_capacity(1000); 
+    // xspan.push(1.0);
+    // for i in 1..2000 {
+    //     xspan.push(xspan[i-1]+dt);
+    // }
+
+    // Calculates the results
+    let int_results = cfd::integration::am2(&test_again, &input, &xspan, solver_steps);
+
+    // Prints results to the console
+    println!("{:?}", int_results);
+
+    let output_path = "am2_act.csv";
+    let cols = [
+        String::from("Time"), 
+        String::from("Y")];
+    let _check = cfd::tools::array_to_csv(&int_results, &cols, output_path);
+}
+
+#[allow(dead_code)]
 fn test_int(x: &Vec<f64>, t: f64) -> Vec<f64> {
     // Assess current values
     let y = x.get(0).unwrap();

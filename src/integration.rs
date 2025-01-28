@@ -1,3 +1,18 @@
+// TODO: Implement Structure to have easy retreival and export of integration data
+struct Integration {
+    t: Vec<f64>,
+    y: Vec<Vec<f64>>,
+    int_type: IntegrationType,
+
+}
+
+// TODO: Needs more fullfiled implementation
+// To inform user of the type of integration that was used
+enum IntegrationType {
+    RK2,
+    AM2,
+}
+
 // 64 bit module for numerical integration
 // RUNGE-KUTTA 2ND ORDER METHOD
 pub fn rk2<F>(f: &F, x0:&Vec<f64>, tspan:&Vec<f64>) -> Vec<Vec<f64>> 
@@ -25,7 +40,7 @@ where
         
         // Constructs inputs
         for j in 1..results.len() {
-            inputs[j-1] = results[j][i]
+            inputs[j-1] = results[j][i];
         }
         
         // First Stage of Analysis
@@ -94,12 +109,15 @@ where
 // I will defeat this one day
 // 2ND ORDER ADAMS-MOULTON
 #[allow(unused_variables)]
-pub fn am2<F>(f:&F, x0:&Vec<f64>, tspan:&Vec<f64>) -> Vec<Vec<f64>> 
-where F:Fn(&Vec<f64>, f64) -> f64{
+pub fn am2<F>(f:&F, x0:&Vec<f64>, tspan:&Vec<f64>, steps:usize) -> Vec<Vec<f64>> 
+where F:Fn(&Vec<f64>, f64) -> Vec<f64>{
     // f: Function to call for numerical integration
     // x0: Initial Conditions
     // tspan: Integration Axis
+    // steps: Number of Steps the linear Solver should make
+    println!("{}", x0.len());
     let mut results= vec![vec![0.0; tspan.len()]; x0.len() + 1];
+    println!("{}", results.len());
 
     // Initial Calculations using x0
     // Adds time to calculations
@@ -112,31 +130,38 @@ where F:Fn(&Vec<f64>, f64) -> f64{
     // Allocates input variables
     let mut inputs = vec![0.0; x0.len()];
 
+    // Sets results equal to a clone of tspan
+    results[0] = tspan.clone();
 
     // Analysis over time span
-    for (i, time) in tspan.iter().enumerate().take(tspan.len() - 1) {
-        
+    for (i, time) in tspan.iter().enumerate().take(tspan.len() - 1) {        
         // Constructs inputs
         for j in 1..results.len() {
-            inputs[j-1] = results[j][i]
+            inputs[j-1] = results[j][i];
         }
-        
-        // Creates Closure of root function
 
+        println!("{:?}", inputs);
 
-        // Second Stage of analysis
-        // let vals = rk2_act(&f, &guess, *time, dt, &derivs, &inputs);
+        // Sets up some variables
+        let dt = tspan.get(i+1).unwrap() - tspan.get(i).unwrap();
 
+        // Creates Closure of root function and solves
         // Enters values into the results array
-        // results[0][i+1] = tspan[i+1];
-        // for (j, val) in vals.iter().enumerate() {
-        //     results[j+1][i+1] = *val;
-        // }
+        for j in 0..x0.len() {
+            println!("{}", j);
+            // Solves values for the timestep
+            let solve = |yn1| 
+                0.5 * (f(&inputs, *time).get(j).unwrap() + f(&vec![yn1], *time).get(j).unwrap()) 
+                - (yn1 - inputs.get(j).unwrap()) / dt;
+            
+            // Solves presented ODE
+            let ans = super::linear::newton_raph(&solve, 5.0, steps);
+            results[j+1][i+1] = ans;
+
+        }
     }
 
-    // results;
-
-    vec![vec![]]
+    results
 }
 
 // TODO: I think this can be removed
