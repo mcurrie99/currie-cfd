@@ -1,4 +1,5 @@
 // TODO: Implement Structure to have easy retreival and export of integration data
+#[allow(dead_code)]
 struct Integration {
     t: Vec<f64>,
     y: Vec<Vec<f64>>,
@@ -8,6 +9,7 @@ struct Integration {
 
 // TODO: Needs more fullfiled implementation
 // To inform user of the type of integration that was used
+#[allow(dead_code)]
 enum IntegrationType {
     RK2,
     AM2,
@@ -155,7 +157,7 @@ where F:Fn(&Vec<f64>, f64) -> Vec<f64>{
                 - (yn1 - inputs.get(j).unwrap()) / dt;
             
             // Solves presented ODE
-            let ans = super::linear::newton_raph(&solve, 5.0, steps);
+            let ans = super::linear::newton_raph(&solve, results[j+1][i], steps); 
             results[j+1][i+1] = ans;
 
         }

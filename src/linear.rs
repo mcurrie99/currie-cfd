@@ -14,6 +14,7 @@ where
     for _ in 0..steps {
         // Generates new solution each step
         sol = sol - f(sol) / estimate_deriv(f, sol);
+        println!("{sol}");
     }
 
     sol

@@ -47,7 +47,7 @@ fn main() {
     let input = vec![y0];
 
     // Defining number of steps for solver
-    let solver_steps = 100;
+    let solver_steps = 2;
 
     // Creates tspan Vector
     // let dt = 0.0001;
