@@ -1,9 +1,11 @@
 // Integration Module
-pub mod integration;
+pub mod ivp;
 
 // Linear Solver Module
 pub mod linear;
 
+// Matrix Implementation
+pub mod matrix;
 
 // Tools that can be used to export data
 pub mod tools {

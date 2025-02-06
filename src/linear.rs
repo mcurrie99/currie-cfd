@@ -14,7 +14,7 @@ where
     for _ in 0..steps {
         // Generates new solution each step
         sol = sol - f(sol) / estimate_deriv(f, sol);
-        println!("{sol}");
+        // println!("{sol}");
     }
 
     sol
@@ -25,6 +25,42 @@ where
 fn estimate_deriv<F>(f:&F, x:f64) -> f64 
 where 
     F: Fn(f64) -> f64
+{
+    // Small Change in function and then estimates the slope in that region
+    let change = 0.0001;
+    let norm = f(x);
+    let upper = f(x+change);
+    let lower = f(x-change);
+    let deriv_upper = (upper - norm) / change;
+    let deriv_lower = (norm - lower) / change;
+    let deriv=  0.5 * (deriv_upper + deriv_lower);
+    deriv
+}
+
+// 32-bit Newton Raph Solver
+#[allow(unused_variables, dead_code)]
+pub fn newton_raph32<F>(f:&F, x0:f32, steps:usize) -> f32
+where 
+    F: Fn(f32) -> f32
+{
+    let mut sol = x0;
+
+    // Iterator Solver
+    for _ in 0..steps {
+        // Generates new solution each step
+        sol = sol - f(sol) / estimate_deriv32(f, sol);
+        // println!("{sol}");
+    }
+
+    sol
+}
+
+// 32-bit derivative estimate
+// TODO: Check the functionality of this function
+#[allow(unused_variables, dead_code)]
+fn estimate_deriv32<F>(f:&F, x:f32) -> f32
+where 
+    F: Fn(f32) -> f32
 {
     // Small Change in function and then estimates the slope in that region
     let change = 0.0001;

@@ -6,7 +6,7 @@ use cfd::matrix::Matrix;
 const A: f64 = 10.0;
 const B: f64 = 1e-4;
 const D: f64 = 4.0e5;
-const E: f64 = 2.0e3;
+const E: f64 = 2.0e-3;
 const TH: f64 = 2000.0;
 const TC: f64 = 400.0;
 const HH: f64 = 900.0;
@@ -19,10 +19,10 @@ const L: f64 = 0.1;
 fn main() {
     // Setup of model
     let mut error = f64::INFINITY;
-    let tolerance = 1e-10;
-    let length = 10001;
+    let tolerance = 1e-2;
+    let length = 51;
 
-    let start_guess = 1600.0;
+    let start_guess = 1500.0;
     let end_guess = 600.0;
 
     // dx derivation
@@ -36,35 +36,49 @@ fn main() {
     println!("{:?}", guess);
 
     // Sets up solving matrix
-    let mut guess_mat = Matrix::new(guess.len()-2, 1);
+    let mut guess_mat = Matrix::new(guess.len(), 1);
     for j in 0..guess_mat.rows() {
-        guess_mat.vals[j][0] = guess[j+1];
+        guess_mat.vals[j][0] = guess[j];
     }
 
     println!("{:?}", guess_mat.vals);
 
     // Creates the matrix that the math will be done with
-    let mut mat = Matrix::new(guess.len()-2, guess.len()-2);
-    let mut result = Matrix::new(guess.len()-2, 1);
+    let mut mat = Matrix::new(guess.len(), guess.len());
+    let mut fi = Matrix::new(guess.len(), 1);
     // let mut dT = Matrix::new(guess.len()-2, 1);
-
 
     // TODO: Move this to generic Function
     // Function Calling
+    let mut counter = 0;
     while error > tolerance {
-        // Assembles Matrix
-        for i in 0..mat.rows() {
-            // Grabs current values
-            let tin1 = *guess.get(i).unwrap();
-            let ti = *guess.get(i+1).unwrap();
-            let tip1 = *guess.get(i+2).unwrap();
+        // First Insertion
+        let ti = *guess.get(0).unwrap();
+        let tip1 = *guess.get(1).unwrap();
+        let tip2 = *guess.get(2).unwrap();
+        let derivs = find_derivs(ti, tip1, tip2, dt, 0);
+        let funcs = func(ti, tip1, tip2, dt, 0);
 
-            // if i==0 {
-            //     println!("PP:{}", tin1)
-            // }
+        // Inserts into result vector and mat vector
+        fi.vals[0] = vec![-funcs];
+        mat.vals[0][0] = *derivs.get(0).unwrap();
+        mat.vals[0][1] = *derivs.get(1).unwrap();
+
+        // println!("dt: {dt}");
+        // println!("T1: {ti}, T2: {tip1}, T3: {tip2}");
+        // println!("Val1: {}", mat.vals[0][0]);
+        // println!("Val2: {}", mat.vals[0][1]);
+
+
+        // Assembles Matrix
+        for i in 1..mat.rows()-1 {
+            // Grabs current values
+            let tin1 = *guess.get(i-1).unwrap();
+            let ti = *guess.get(i).unwrap();
+            let tip1 = *guess.get(i+1).unwrap();
 
             // Grabs Derivatives
-            let derivs = derivs(tin1, ti, tip1, dt);
+            let derivs = find_derivs(tin1, ti, tip1, dt, 1);
 
             // Determines values to place into Matrix
             if i == 0 {
@@ -83,53 +97,63 @@ fn main() {
             }
 
             // Determines Values to place into resulting vector
-            result.vals[i] = vec![-func(tin1, ti, tip1, dt)];
-        }   
+            fi.vals[i] = vec![-func(tin1, ti, tip1, dt, 1)];
+        }
+
+        // Last insertion
+        let end = guess.len()-1;
+        let tiln2 = *guess.get(end-2).unwrap();
+        let tiln1 = *guess.get(end-1).unwrap();
+        let til = *guess.get(end).unwrap();
+        let derivs = find_derivs(tiln2, tiln1, til, dt, 2);
+        let funcs = func(tiln2, tiln1, til, dt, 2);
+
+        // Sets Result Vector
+        fi.vals[end] = vec![-funcs];
+        mat.vals[end][end-1] = *derivs.get(1).unwrap();
+        mat.vals[end][end] = *derivs.get(2).unwrap();
 
         // Decomposes matrix and solves
         let (l, u) = build_lu(&mat);
-        let (dx, z) = solve_lu(&mat, &l, &u, &result);
+        let (dx, z) = solve_lu(&mat, &l, &u, &fi);
 
         // Adjusts Temperatues
-        for j in 0..result.rows() {
+        for j in 0..guess_mat.rows() {
             guess_mat.vals[j][0] = guess_mat.vals[j][0] + dx.vals[j][0];
-            guess[j+1] = guess_mat.vals[j][0]
+            guess[j] = guess_mat.vals[j][0]
         }
 
-        // let first_val = |t1| HH*(TH-t1) + (A + B*guess[1]) * (-3.0*t1 + 4.0*guess[1] - guess[2]) / (2.0 * dt);
-        // guess[0] = cfd::linear::newton_raph(&first_val, start_guess, 14);
-        // println!("Guess: {}", guess[0]);
-    
-        // let idx = guess.len()-1;
-        // let last_val = |til:f64| HL * (til - TC) + (A + B * til) * (3.0 * til - 4.0*guess[idx-1] + guess[idx-2]) / (2.0 * dt);
-        // guess[idx] = cfd::linear::newton_raph(&last_val, end_guess, 14);
 
         // Calculates Error
         error = find_error(&guess_mat, &dx);
-        // println!("{}", error);
-        // println!("dT:\n{:?}", dx.vals);
-        // println!("F:\n{:?}", result.vals);
-        // println!("Matrix:\n{:?}", mat.vals);
-        // error = 0.0;
-    
+        println!("{}", error);
+        println!("dT:\n{:?}", dx.vals);
+        println!("Fi:\n{:?}", fi.vals);
+        println!("Guess:\n{:?}", guess);
+        println!("Matrix:\n{:?}", mat.vals);
+        
+        if counter == 0 {
+            error = 0.0
+        }
+        counter+=1;
+        
     }
-
-    println!("Relative Error: {}", error);
 
 
     // Moves values to array of numbers
     let mut results = vec![0.0; length];
-    for i in 1..results.len()-1 {
-        results[i] = guess_mat.vals[i-1][0];
+    for i in 0..results.len() {
+        results[i] = guess[i];
     }
 
-    let first_val = |t1| HH*(TH-t1) + (A + B*results[1]) * (-3.0*t1 + 4.0*results[1] - results[2]) / (2.0 * dt);
-    results[0] = cfd::linear::newton_raph(&first_val, start_guess, 14);
+    // let first_val = |t1| HH*(TH-t1) + (A + B*results[1]) * (-3.0*t1 + 4.0*results[1] - results[2]) / (2.0 * dx);
+    // results[0] = cfd::linear::newton_raph(&first_val, start_guess, 14);
 
-    let idx = results.len()-1;
-    let last_val = |til:f64| HL * (til - TC) + (A + B * til) * (3.0 * til - 4.0*results[idx-1] + results[idx-2]) / (2.0 * dt);
-    results[idx] = cfd::linear::newton_raph(&last_val, end_guess, 14);
+    // let idx = results.len()-1;
+    // let last_val = |til:f64| HL * (til - TC) + (A + B * til) * (3.0 * til - 4.0*results[idx-1] + results[idx-2]) / (2.0 * dx);
+    // results[idx] = cfd::linear::newton_raph(&last_val, end_guess, 14);
     // println!("{:?}", results);
+
 
     // Exports values
     let mut output = vec![vec![0.0; results.len()]; 2];
@@ -138,7 +162,7 @@ fn main() {
         output[1][i] = results[i] as f64;
     }
 
-    let output_path = "edited.csv";
+    let output_path = "p3.csv";
     let cols = [
         String::from("x"), 
         String::from("T")];
@@ -147,23 +171,54 @@ fn main() {
 
 // Function for finding derivatives
 #[allow(dead_code, non_snake_case)]
-fn derivs(Tin1:f64, Ti:f64, Tip1:f64, dx:f64) -> Vec<f64> {
-    let deriv_Tin1 = (Tin1 * B + A) / dx.powf(2.0);
-    let deriv_Ti = (-2.0 * Ti * B - 2.0 * A) / dx.powf(2.0) + E;
-    let deriv_Tip1 = (Tip1 * B + A) / dx.powf(2.0);
+fn find_derivs(Tin1:f64, Ti:f64, Tip1:f64, dx:f64, i:usize) -> Vec<f64> {
 
-    // Returns Values
-    vec![deriv_Tin1, deriv_Ti, deriv_Tip1]
+    if i == 0 {
+        // let deriv_Ti = (-6.0*Tin1*B + 4.0*Ti*B - Tip1*B - 3.0*A - 2.0*HH*dx) / (2.0*dx);
+        let deriv_Ti = (-2.0 * Tin1 * B + Ti * B - A - HH*dx) / dx;
+        let deriv_Tip1 = (Tin1*B + A) / dx;
+        let deriv_Tip2 = 0.0; // Not needed for analysis so this can remain 0
+        vec![deriv_Ti, deriv_Tip1, deriv_Tip2]
+    }
+    else if i == 1 {
+        let deriv_Tin1 = (Tin1 * B + A) / dx.powf(2.0);
+        let deriv_Ti = (-2.0 * Ti * B - 2.0 * A) / dx.powf(2.0) + E;
+        let deriv_Tip1 = (Tip1 * B + A) / dx.powf(2.0);
+        vec![deriv_Tin1, deriv_Ti, deriv_Tip1]
+    } else {
+        let deriv_Tin2 = 0.0; // Not needed for analysis so this can remain 0
+        let deriv_Tin1 = (-Tip1*B - A) / dx;
+        // let deriv_Ti = (-4.0*Ti * B + Tin1 * B + 6.0 * Tip1 * B + 3.0*A + 2.0*HL*dx) / (2.0*dx);
+        let deriv_Ti = (-Tip1 * B + A + B * (Ti - Tip1) + HL * dx) / dx;
+        vec![deriv_Tin2, deriv_Tin1, deriv_Ti]
+    }
 }
 
 // Ouput of Function
 #[allow(dead_code, non_snake_case)]
-fn func(Tin1:f64, Ti:f64, Tip1:f64, dx:f64) -> f64 {
-    let part1 = dx.powf(2.0) * (Ti * E + D);
-    let part2 = -(Ti - Tip1) * (0.5 * Ti * B + 0.5 * Tip1 * B + A);
-    let part3 = -(Ti - Tin1) * (0.5 * Ti * B + 0.5 * Tin1 * B + A);
-    let result = (part1 + part2 + part3) / dx.powf(2.0);
-    result
+fn func(Tin1:f64, Ti:f64, Tip1:f64, dx:f64, i:usize) -> f64 {
+    if i==0 {
+        // let part1 = HH*(-Tin1+TH);
+        // let part2 = ((Tin1 * B + A) * (-3.0 * Tin1 + 4.0 * Ti - Tip1)) / (2.0 * dx);
+        // let result = part1 + part2;
+
+        let result = HH * (-Tin1 + TH) + (-Tin1 + Ti) * (Ti * B + A) / dx;
+        return result
+    } else if i==1 {
+        let part1 = dx.powf(2.0) * (Ti * E + D);
+        let part2 = -(Ti - Tip1) * (0.5 * Ti * B + 0.5 * Tip1 * B + A);
+        let part3 = -(Ti - Tin1) * (0.5 * Ti * B + 0.5 * Tin1 * B + A);
+        let result = (part1 + part2 + part3) / dx.powf(2.0);
+        return result
+    } else {
+        // let part1 = HL * (-TC + Tip1);
+        // let num = (Tip1 * B + A) * (-4.0 * Ti + Tin1 + 3.0 * Tip1);
+        // let part2 = num / (2.0 * dx);
+        // let result = part1 + part2;
+
+        let result = HL * (-TC + Tip1) + (Ti - Tip1) * (Tip1 * B + A) / dx;
+        return result
+    }
 }
 
 #[allow(dead_code)]
@@ -180,7 +235,7 @@ fn diff_op_2(x1:f64, x2:f64, x3:f64, dx:f64) -> f64 {
 fn test_func(Tin1:f64, Ti:f64, Tip1:f64, dx:f64) -> f64 {
     let part1 = B * diff_op_1(Ti, Tin1, dx).powf(2.0);
     let part2 = (A + B * Ti) * diff_op_2(Tip1, Ti, Tin1, dx);
-    let part3 = D + E * Ti;
+    let part3 = D * E * Ti;
 
     part1 + part2 + part3
 }
@@ -192,6 +247,12 @@ fn test_derivs(Tin1:f64, Ti:f64, Tip1:f64, dx:f64) -> Vec<f64> {
     let deriv_Tip1 = (1.0/dx.powf(2.0))*(0.5*B*Tip1-0.5*B*Tin1+B*Ti+A);
 
     vec![deriv_Tin1, deriv_Ti, deriv_Tip1]
+
+
+    // % interior nodes (example placeholders from image)
+    // df_dt1 = (1/dx^2)*(0.5*b*T(i-1)-0.5*b*T(i+1)+b*T(i)+a);
+    // df_dt2 = (1/dx^2)*(-4*b*T(i)+b*T(i+1)+b*T(i-1)-2*a)+e;  % partial
+    // df_dt3 = (1/dx^2)*(0.5*b*T(i+1)-0.5*b*T(i-1)+b*T(i)+a);
 }
 
 // Functions for solving
@@ -295,99 +356,3 @@ fn find_error(x:&Matrix, dx:&Matrix) -> f64 {
     // Returns values
     error
 }
-
-
-// #[allow(dead_code)]
-// fn main2() {
-//     let y0 = 2.0;
-//     let z0 = 2.0;
-//     let x0 = 1.0;
-
-//     // let test = Float::with_val(128, 0.1+0.2);
-//     // println!("{}", test);
-
-//     let input = vec![y0, z0];
-//     let tinput = x0;
-    
-//     // Creates tspan Vector
-//     let dt = 0.0001;
-//     let mut tspan: Vec<f64> = Vec::with_capacity(1000); 
-//     tspan.push(1.0);
-//     for i in 1..2000 {
-//         tspan.push(tspan[i-1]+dt);
-//     }
-    
-//     // let tspan = vec![1.0, 1.1, 1.2];
-
-//     let result = test_int(&input, tinput);
-//     println!("{:?}", result);
-
-//     let int_results = cfd::ivp::rk2(&test_int, &input, &tspan);
-
-//     println!("{:?}", int_results);
-    
-//     let output_path = "output2.csv";
-//     let cols = [
-//         String::from("Time"), 
-//         String::from("Y"), 
-//         String::from("Z")];
-//     let _check = cfd::tools::array_to_csv(&int_results, &cols, output_path);
-// }
-
-// fn main() {
-//     // Setting up conditions
-//     let y0 = 10.0;
-    
-//     // Sets up Arrays for funciton call
-//     let xspan = vec![1.0, 1.1, 1.2];
-//     let input = vec![y0];
-
-//     // Defining number of steps for solver
-//     let solver_steps = 2;
-
-//     // Creates tspan Vector
-//     // let dt = 0.0001;
-//     // let mut xspan: Vec<f64> = Vec::with_capacity(1000); 
-//     // xspan.push(1.0);
-//     // for i in 1..2000 {
-//     //     xspan.push(xspan[i-1]+dt);
-//     // }
-
-//     // Calculates the results
-//     let int_results = cfd::ivp::am2(&test_again, &input, &xspan, solver_steps);
-
-//     // Prints results to the console
-//     println!("{:?}", int_results);
-
-//     let output_path = "am2_act.csv";
-//     let cols = [
-//         String::from("Time"), 
-//         String::from("Y")];
-//     let _check = cfd::tools::array_to_csv(&int_results, &cols, output_path);
-// }
-
-// #[allow(dead_code)]
-// fn test_int(x: &Vec<f64>, t: f64) -> Vec<f64> {
-//     // Assess current values
-//     let y = x.get(0).unwrap();
-//     let z = x.get(1).unwrap();
-//     let x = t;
-
-//     let dy_dx = z.clone();
-
-//     let dy2_dx2 = 5.0 * x.powf(2.0) - 3.0 / 2.0 * x.powf(2.0) * y * z;
-    
-//     vec![dy_dx, dy2_dx2]
-// }
-
-// // TODO: Remove this when you have completed the homework
-// #[allow(unused_variables, dead_code)]
-// fn test_again(x: &Vec<f64>, t:f64) -> Vec<f64> {
-//     // Assess current values
-//     let yn = x.get(0).unwrap();
-
-//     let dy_dx = 5.0 - 3.0 / 2.0 * yn.powf(2.0);
-
-//     vec![dy_dx]
-// }
-
