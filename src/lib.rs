@@ -1,5 +1,5 @@
 // Integration Module
-pub mod what;
+pub mod ivp;
 
 // Linear Solver Module
 pub mod linear;
