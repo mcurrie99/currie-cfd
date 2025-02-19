@@ -1,6 +1,10 @@
 // Integration Module
 pub mod ivp;
 
+// TODO: This module need to be rewritten and will not be public for now
+// Boundary Value Problem Module
+mod bvp;
+
 // Linear Solver Module
 pub mod linear;
 
