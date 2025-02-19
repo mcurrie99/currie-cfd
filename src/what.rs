@@ -136,7 +136,7 @@ where F:Fn(&Vec<f64>, f64) -> Vec<f64>{
     results[0] = tspan.clone();
 
     // Analysis over time span
-    for (i, time) in tspan.iter().enumerate().take(tspan.len() - 1) {        
+    for (i, time) in tspan.iter().enumerate().take(tspan.len() - 1) {
         // Constructs inputs
         for j in 1..results.len() {
             inputs[j-1] = results[j][i];

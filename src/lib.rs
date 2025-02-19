@@ -1,11 +1,14 @@
 // Integration Module
-pub mod ivp;
+pub mod what;
 
 // Linear Solver Module
 pub mod linear;
 
 // Matrix Implementation
 pub mod matrix;
+
+// Boundary Value Solver
+// pub mod bvp;
 
 // Tools that can be used to export data
 pub mod tools {
@@ -50,6 +53,19 @@ pub mod tools {
             .finish(&mut df)?;
     
         Ok(())
+    }
+
+    pub fn linspace(start:f64, end:f64, steps:usize) -> Vec<f64> {
+        // Creates initial array and determines dx
+        let mut result = Vec::with_capacity(steps);
+        let dx = (end - start) / ((steps as f64) - 1.0);
+    
+        // Puts entries into Array
+        for i in 0..steps {
+            result.push(start + dx*i as f64);
+        }
+    
+        result
     }
 }
 
